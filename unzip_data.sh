@@ -9,3 +9,5 @@ for myfile in Downloads/ras*.tar; do
     done
     echo "."
 done
+
+#klappt es?
