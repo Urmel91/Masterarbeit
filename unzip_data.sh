@@ -10,4 +10,4 @@ for myfile in Downloads/ras*.tar; do
     echo "."
 done
 
-#klappt es?
+#Laila schaut zu 
