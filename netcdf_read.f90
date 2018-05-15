@@ -46,10 +46,10 @@ program test_read
   ! This is the name of the data file we will read and output
 !  character (len = *), parameter :: FILE_IN = "pr_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_mon_" !60
 !  character (len = 100) :: FILE_NAME = "pr_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_mon_0.nc"
-  character (len = 80) :: FILE_OUT
+  character (len = 200) :: FILE_OUT
   character (len = 150) :: FILE_NAME
   character (len = 1) :: out_index 
-  character (len = 2) :: length_out_path_str
+  character (len = 3) :: length_out_path_str
   character(len=:), allocatable :: out_path 
   integer :: length_out_path
   
@@ -68,10 +68,10 @@ program test_read
     call getarg(1, FILE_NAME)
     call getarg(2, out_index)
     call getarg(3, length_out_path_str)
-    read(length_out_path_str,'(I2)') length_out_path  
+    read(length_out_path_str,'(I3)') length_out_path 
     allocate(character(len=length_out_path) :: out_path)
     call getarg(4, out_path)
-
+    
 !----- Open the file. 
     call check( nf90_open(FILE_NAME, nf90_nowrite, ncid) )
 
@@ -434,8 +434,8 @@ program test_read
 
   
 !----- Einlesen in .txt-File -------------------------
-    write (FILE_OUT,*) out_path,"file_out_",out_index,".txt"
-
+    write (FILE_OUT,*) out_path,".txt"
+    
     open(21,file=FILE_OUT,status='replace',action='write')
     
 !------ rotierte daten einlesen (anderes format)    

@@ -47,3 +47,7 @@ done
 
 h=ja/ich/bin
 echo ${#h}
+
+myfile=hallo/iwww.nc
+outfile=${myfile%.nc}
+echo "${#outfile}"
