@@ -128,15 +128,20 @@ if __name__ == '__main__':
  
   hist_path = sys.argv[1]
   rcp_path = sys.argv[2]
-
+  mon_or_d = sys.argv[3]
+  
   his_data = sorted(glob.glob(hist_path + '*.txt'))
   rcp_data = sorted(glob.glob(rcp_path+'*.txt'))
 
-#  concat = read_conc_mon(his_data, rcp_data)
-  concat = read_conc_day(his_data, rcp_data)
+  if ( mon_or_d == "mon" ):
+      concat = read_conc_mon(his_data, rcp_data)
+  elif ( mon_or_d == "daily" ):
+      concat = read_conc_day(his_data, rcp_data)
+
   print("concat fineshed...")
   path = ""
-  data_name = rcp_path.split("/")[8]+"_"+rcp_path.split("/")[9]+"_"+rcp_path.split("/")[10]
+  data_name = rcp_path.split("/")[7]+"_"+rcp_path.split("/")[8]+"_"\
+      +rcp_path.split("/")[9]+"_"+rcp_path.split("/")[10]
   print("save data as...", data_name)
   for i in range(1,len(rcp_path.split("/"))-2):
       path = path + "/" + rcp_path.split("/")[i]

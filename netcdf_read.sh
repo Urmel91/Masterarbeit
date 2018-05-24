@@ -29,12 +29,12 @@ if [[ ${5} =~ "r" ]]; then
         ((count++))
     done
 
-    rm -r ${phist}*.nc
-    rm -r ${prcp}*.nc
+#    rm -r ${phist}*.nc
+#    rm -r ${prcp}*.nc
 fi
 
 if [[ ${5} =~ "c" ]] || [[ ${6} =~ "c" ]]; then
     echo "concat data..."
 
-    ./concat.py ${phist} ${prcp}
+    ./concat.py ${phist} ${prcp} ${1}
 fi

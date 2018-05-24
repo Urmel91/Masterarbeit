@@ -46,12 +46,13 @@ program test_read
   ! This is the name of the data file we will read and output
 !  character (len = *), parameter :: FILE_IN = "pr_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_mon_" !60
 !  character (len = 100) :: FILE_NAME = "pr_EUR-11_CNRM-CERFACS-CNRM-CM5_historical_r1i1p1_CLMcom-CCLM4-8-17_v1_mon_0.nc"
-  character (len = 200) :: FILE_OUT
-  character (len = 150) :: FILE_NAME
+  character (len = 300) :: FILE_OUT
+  character (len = 300) :: FILE_NAME
   character (len = 1) :: out_index 
-  character (len = 3) :: length_out_path_str
+  character (len = 3) :: length_out_path_str !6 weil tasmax längste ist
   character(len=:), allocatable :: out_path 
   integer :: length_out_path
+  character (len = 6) :: var
   
   real, dimension(:), allocatable :: lats_rot
   real, dimension(:), allocatable :: lons_rot
@@ -71,9 +72,11 @@ program test_read
     read(length_out_path_str,'(I3)') length_out_path 
     allocate(character(len=length_out_path) :: out_path)
     call getarg(4, out_path)
+    call getarg(5, var)
+    
     
 !----- Open the file. 
-    call check( nf90_open(FILE_NAME, nf90_nowrite, ncid) )
+    call check( nf90_open(trim(FILE_NAME), nf90_nowrite, ncid) )
 
     call check( nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid))
     
@@ -86,7 +89,7 @@ program test_read
     call check( nf90_inq_varid(ncid, LAT_NAME, lat_varid) )
     call check( nf90_inq_varid(ncid, LON_NAME, lon_varid) )
     call check( nf90_inq_varid(ncid, TIME_NAME, time_varid) )
-    call check( nf90_inq_varid(ncid, "pr", tas_varid))    
+    call check( nf90_inq_varid(ncid, var, tas_varid))    
 
 !----- Get the length of the dimensions         
     call check( nf90_inq_dimid(ncid, LAT_NAME, lat_dimid))
@@ -434,9 +437,9 @@ program test_read
 
   
 !----- Einlesen in .txt-File -------------------------
-    write (FILE_OUT,*) out_path,".txt"
+    write(FILE_OUT,"(A,A)") trim(out_path),".txt"
     
-    open(21,file=FILE_OUT,status='replace',action='write')
+    open(21,file=trim(FILE_OUT),status='replace',action='write')
     
 !------ rotierte daten einlesen (anderes format)    
         do g = 1, numTimes
@@ -444,11 +447,21 @@ program test_read
                 do j = lon_start, lon_end
                     if (lat_lon(i,j)%n == 1) then
                         if (mod(g,2) == 0) then
-                            write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
-                            tas_in(j,i,g)*s_to_m30
+                            if ( trim(var) == 'pr' ) then
+                                write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
+                                tas_in(j,i,g)*s_to_m30
+                            else if ( trim(var) == 'tas' .or. trim(var) == 'tasmax' .or. trim(var) == 'tasmin') then
+                                write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
+                                tas_in(j,i,g)
+                            end if    
                         else if (mod(g,2) == 1) then
-                            write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
-                            tas_in(j,i,g)*s_to_m31
+                            if ( trim(var) == 'pr' ) then
+                                write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
+                                tas_in(j,i,g)*s_to_m31
+                            else if ( trim(var) == "tas" .or. trim(var) == 'tasmax' .or. trim(var) == 'tasmin') then
+                                write(21,'(I0,F8.5,1X,F0.5,1X,F0.5)') g, lat_lon(i,j)%lat_rot, lat_lon(i,j)%lon_rot,&
+                                tas_in(j,i,g)
+                            end if    
                         end if    
                     end if
                 end do
