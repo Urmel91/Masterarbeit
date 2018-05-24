@@ -2,8 +2,7 @@
 
 import numpy as N
 import glob 
-import matplotlib.pyplot as plt
-import mystats as ms  
+import matplotlib.pyplot as plt  
 import sys
 
 def length_files(files):
@@ -45,7 +44,7 @@ def month_gp(data):
     month = month_end - month_start
     return month
 
-def to_years(data, y):
+def to_years_mon(data, y):
     gp_year = month_gp(data)*12
     for i in xrange(len(data)):
         rest = int(i/(gp_year)) 
@@ -53,12 +52,63 @@ def to_years(data, y):
         data[i,0] = int(data[i,0])        
     return data    
 
-def read_conc(his, data):
+def schaltjahr(jahr):
+    if jahr % 400 == 0:
+        return True
+    elif jahr % 100 == 0:
+        return False
+    elif jahr % 4 == 0:
+        return True
+    else:
+        return False
+    
+def to_years_day(data, y):
+    day_month = [31,28,31,30,31,30,31,31,30,31,30,31]
+    start_mon = 0
+    end_mon = 0
+    for year in N.arange(1971,2101):            
+#        start_mon = (year - 1971)*sum(day_month)*422
+        if (schaltjahr(year)):
+            day_month[1] = 29
+            
+        elif (not schaltjahr(year)):
+            day_month[1] = 28
+        
+        for i in N.arange(0,12):
+            gp_mon = 422*day_month[i]
+            start_mon = end_mon
+            end_mon = start_mon + gp_mon            
+            data[start_mon:end_mon,0] = str(year) + '|' + str(i+1)
+       # start_mon = end_mon
+       # end_mon = start_mon
+    return data    
+
+def read_conc_mon(his, data):
     his = readfiles(his)
     data = readfiles(data)
     data = conc(his, data)
-    to_years(data, 1971)
+    to_years_mon(data, 1971)
     return data    
+
+def read_conc_day(his, data):
+    his = readfiles(his)
+    data = readfiles(data)
+    data = conc(his, data)
+    to_years_day(data, 1971)
+    return data    
+
+def mean_day(data):
+    day_end = 422
+    day_start = 0
+    day = day_end - day_start
+    anzahl_day = len(data)/day
+    day_mean = N.zeros((int(anzahl_day),2),'object')
+    for i in xrange(len(day_mean)):
+        day_mean[i,0] = data[day_start,0]
+        day_mean[i,1] = N.mean(data[day_start:day_end,3])
+        day_start = day_start + day
+        day_end = day_end + day
+    return day_mean
 
 def mean_mon(data):
     month_end = month_gp(data)/12    #so festlegen welche daten noch
@@ -82,14 +132,18 @@ if __name__ == '__main__':
   his_data = sorted(glob.glob(hist_path + '*.txt'))
   rcp_data = sorted(glob.glob(rcp_path+'*.txt'))
 
-  concat = read_conc(his_data, rcp_data)
+#  concat = read_conc_mon(his_data, rcp_data)
+  concat = read_conc_day(his_data, rcp_data)
+  print("concat fineshed...")
   path = ""
-  data_name = rcp_path.split("/")[5]+"_"+rcp_path.split("/")[6]
+  data_name = rcp_path.split("/")[8]+"_"+rcp_path.split("/")[9]+"_"+rcp_path.split("/")[10]
+  print("save data as...", data_name)
   for i in range(1,len(rcp_path.split("/"))-2):
       path = path + "/" + rcp_path.split("/")[i]
-
   data_name = path + "/" + data_name
-  result = mean_mon(concat)
-        
-  N.savetxt(data_name,result,fmt='%4d %1.5f')
+#  result = mean_mon(concat)
+  result = mean_day(concat)          
+#  N.savetxt(data_name,result,fmt='%4d %1.5f')
+  N.savetxt(data_name,result,fmt='%7s %1.5f')
+  print("data saved!")
         
