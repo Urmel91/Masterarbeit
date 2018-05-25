@@ -1,6 +1,7 @@
 #!/bin/bash
+#set -e
 
-pat=~/Schreibtisch/Masterarbeit/Originaldaten/${1}/${2}/${3}/${4}/
+pat=~/Masterarbeit/Originaldaten/${1}/${2}/${3}/${4}/
 
 phist=${pat}hist/
 prcp=${pat}rcp85/
@@ -29,6 +30,12 @@ if [[ ${5} =~ "r" ]]; then
         ((count++))
     done
 
+    read -p "Do you want to delete the .nc-files? [j/n]: " janein
+    
+    if [[ ${janein} =~ "j" ]]; then
+        mv ${phist}*.nc ~/.local/share/Trash/files/
+        mv ${prcp}*.nc ~/.local/share/Trash/files/
+    fi
 #    rm -r ${phist}*.nc
 #    rm -r ${prcp}*.nc
 fi
@@ -37,4 +44,16 @@ if [[ ${5} =~ "c" ]] || [[ ${6} =~ "c" ]]; then
     echo "concat data..."
 
     ./concat.py ${phist} ${prcp} ${1}
+fi
+
+if [[ ${5} =~ "kom" ]] || [[ ${6} =~ "kom" ]] || [[ ${7} =~ "kom" ]]; then
+    echo "compress the .txt files..."
+    gzip ${phist}*.txt
+    gzip ${prcp}*.txt
+fi
+
+if [[ ${5} =~ "unkom" ]]; then
+    echo "uncompress the .txt.gz files..."
+    gzip -d ${phist}*.txt.gz
+    gzip -d ${prcp}*.txt.gz
 fi

@@ -140,8 +140,8 @@ if __name__ == '__main__':
 
   print("concat fineshed...")
   path = ""
-  data_name = rcp_path.split("/")[7]+"_"+rcp_path.split("/")[8]+"_"\
-      +rcp_path.split("/")[9]+"_"+rcp_path.split("/")[10]
+  data_name = rcp_path.split("/")[6]+"_"+rcp_path.split("/")[7]+"_"\
+      +rcp_path.split("/")[8]+"_"+rcp_path.split("/")[9]
   print("save data as...", data_name)
   for i in range(1,len(rcp_path.split("/"))-2):
       path = path + "/" + rcp_path.split("/")[i]

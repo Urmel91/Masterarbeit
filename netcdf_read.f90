@@ -1,4 +1,8 @@
-program test_read
+!------ Beschreibung --------------------------------
+! .nc-files werden in .txt files umgwandelt. 
+! Name des .nc-files wird über bash eingelesen und steckt in var.
+
+program netcdf_read
   use netcdf
   implicit none
   
@@ -79,11 +83,6 @@ program test_read
     call check( nf90_open(trim(FILE_NAME), nf90_nowrite, ncid) )
 
     call check( nf90_inquire(ncid, nDims, nVars, nGlobalAtts, unlimdimid))
-    
-!    call check( nf90_inquire_variable(ncid, 7, name))
-!    call check( nf90_inquire_dimension(ncid, 5, name))
-
-!    print *, nDims
 
 !----- Get the varids of the latitude and longitude coordinate variables.
     call check( nf90_inq_varid(ncid, LAT_NAME, lat_varid) )
@@ -112,9 +111,9 @@ program test_read
     allocate(lat_lon(numLats, numLons))
     
 !----- Read the latitude and longitude and tas data.
-    call check( nf90_get_var(ncid, lat_varid, lats_rot))     
+    call check( nf90_get_var(ncid, lat_varid, lats_rot) )     
     call check( nf90_get_var(ncid, lon_varid, lons_rot) )  
-    call check(nf90_get_var(ncid, tas_varid, tas_in))
+    call check( nf90_get_var(ncid, tas_varid, tas_in) )
 
 !----- rotiertes Gitter anlegen aus eingelesenen daten mit geo daten drin    
     do i = 1, numLats
@@ -124,7 +123,6 @@ program test_read
     end do
 
     
-
 !------ Niedersachsen Gitter initiieren mit Auflösung 12,5km ---------------
     do i=lat_start_ind, lat_end_ind 
         lat_lon_n(i,:)%lat = 51.31250 + (i-1)*0.0625 
@@ -141,7 +139,6 @@ program test_read
             call coord_trafo(1, dummy1, dummy2, lat_lon_n(i,j))
         end do
     end do 
-
     
 
 !------ Niedersachsen misslons/misslats fur Auflösung 12.5km initiieren --------------
