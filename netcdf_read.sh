@@ -33,6 +33,7 @@ if [[ ${5} =~ "r" ]]; then
     read -p "Do you want to delete the .nc-files? [j/n]: " janein
     
     if [[ ${janein} =~ "j" ]]; then
+        echo "deleting files..."
         mv ${phist}*.nc ~/.local/share/Trash/files/
         mv ${prcp}*.nc ~/.local/share/Trash/files/
     fi
