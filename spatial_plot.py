@@ -73,26 +73,45 @@ def mittel30(data):
     bla = []
     for i in range(422):
         for j in range(1,30*12):
-            mean30[i,3] = (mean30[i,3] + data[i+j*422,3])
-            bla[j] = data[i+j*422,3]
-        mean30[i,3] = mean30[i,3]/(30*12)    
-    return mean30        
+            mean30[i,3] = (mean30[i,3] + data[i+j*422,3])            
+        mean30[i,3] = mean30[i,3]/(30*12)
+    mean30[:,0] = data[0,0] + "-" + data[29*12*422,0]    
+    return mean30       
 
 
 if __name__ == '__main__':
 
-  data_path = "/home/steffen/Masterarbeit/Originaldaten/mon/tas/CNRM/cclm/hist/" 
+  data_path = "/home/vanselow/Masterarbeit/Masterarbeit/Originaldaten/mon/tas/CNRM/cclm/" 
 
   data = sorted(glob.glob(data_path + '*.txt'))
-  
+ 
   data = readfiles(data)
   
   data = to_years_mon(data, 1971)
   
   data_30 = mittel30(data)
   
-    
-#  N.savetxt("mean30_data",data_30[0:422],fmt="%s %f %f %f")
-
-
+  lat = N.arange(min(data[:,1]),max(data[:,1])+0.11,0.11)
+  lon = N.arange(min(data[:,2]),max(data[:,2])+0.11,0.11)
   
+  lon_lat = N.meshgrid(lon,lat)
+  #N.savetxt("mean_gp_30",data_30,fmt="%s %f %f %f")
+  
+  #test = N.zeros((2,3),'f')
+  #print(test)
+  
+  
+  nied = N.zeros((len(lat),len(lon)),'f')
+  nied[:,:] = N.float(278.0)
+  for line in data_30:
+      ilat = line[1]+0.001
+      ilon = line[2]+0.001
+	  
+      lat_ind = int((ilat-0.825000)/0.11)
+      lon_ind = int((ilon+6.815000)/0.11)
+      nied[lat_ind,lon_ind] = line[3]
+  
+    
+  con = plt.contourf(lon_lat[0],lon_lat[1],nied)
+  plt.show()
+ 
