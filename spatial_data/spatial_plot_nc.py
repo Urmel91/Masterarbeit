@@ -33,10 +33,14 @@ def plot_basemap(data):
     #m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
     x,y = m(lons,lats)
     #m.scatter(x,y,alpha=0.5)
-    cs = m.contourf(x,y,data, np.arange(278.0, 286.0, .25), alpha=0.6)
-    #cs = m.contourf(x,y,data, alpha=0.6)
+    #cs = m.contourf(x,y,data, np.arange(278.0, 286.0, .25), alpha=0.6)
+    cs = m.contourf(x,y,data, alpha=0.6)
     cbar = m.colorbar(cs,location='bottom',pad="5%")
     
+def read_gp_mean(data):
+    f = Dataset(data, 'r')
+    gp_mean = f.variables['gp_mean'][:]
+    return gp_mean
 
 if __name__ == '__main__':
     
@@ -51,7 +55,13 @@ if __name__ == '__main__':
     tas = f.variables['tas'][:] #(time,lats,lons)
     gp_mean = f.variables['gp_mean'][:] #(gp_mean,lats,lons)
     
-    mean_all = np.zeros((len(data),len(rlats),len(rlons)),'f')
+    
+    #----- ensemble data in one array ---------
+    gp_mean_all = np.array([read_gp_mean(ifile) for ifile in data])
+    gp_mean_all = np.mean(gp_mean_all[:,:,:,:],axis=0)
+    
+    
+    #sys.exit()
     
     #for name in data:
         
@@ -65,7 +75,7 @@ if __name__ == '__main__':
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     lon_lat_geo = np.meshgrid(lons,lats)
 
-    plot_basemap(gp_mean[0])
+    plot_basemap(gp_mean_all[0]-273.15)
     #plot_basemap(gp_mean[1])
     plt.show()
 

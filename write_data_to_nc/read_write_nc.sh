@@ -35,7 +35,7 @@ if [[ ${5} =~ "-c" ]] || [[ ${6} =~ "-c" ]]; then
     
     read -p "Do you want to concat the data? [j/n]: " conc
 
-    if [[ ${cut} =~ "j" ]]; then
+    if [[ ${conc} =~ "j" ]]; then
     
         outfile=${pat%${4}/}${2}_${3}_${4}
         ./conc_mean30_nc.py ${pat} ${outfile} ${2}

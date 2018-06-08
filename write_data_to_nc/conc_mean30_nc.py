@@ -15,9 +15,12 @@ import coord_trafo as ct
 def mean30(data):
 #---30 years mean for every grid point in 
 #   3 time areas:  71-00, 21-50, 71-00
+#   building differences to ref period
     mean = np.zeros((3,np.shape(data)[1],np.shape(data)[2]), 'f')
     for i in range(3):
         mean[i,:,:] = np.mean(data[(0+50*12*i):(30*12+50*12*i),:,:], axis=0)
+    mean[2,:,:] = mean[2,:,:]-mean[0,:,:]   
+    mean[1,:,:] = mean[1,:,:]-mean[0,:,:]   
     return mean
     
 
@@ -45,7 +48,6 @@ if __name__ == '__main__':
         var = np.concatenate((var,var_new),axis=0)
 
     gp_mean = mean30(var)
-    
        
 #------ write to netcdf file ------------------------------
     fileobj = Dataset(out_file+'_gp_mean.nc', 'w')
