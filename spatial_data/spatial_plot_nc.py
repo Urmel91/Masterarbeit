@@ -33,38 +33,39 @@ def plot_basemap(data):
     #m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
     x,y = m(lons,lats)
     #m.scatter(x,y,alpha=0.5)
-    #cs = m.contourf(x,y,data, np.arange(278.0, 286.0, .25), alpha=0.6)
-    cs = m.contourf(x,y,data, alpha=0.6)
+    cs = m.contourf(x,y,data, np.arange(278.0, 286.0, .25), alpha=0.6)
+    #cs = m.contourf(x,y,data, alpha=0.6)
     cbar = m.colorbar(cs,location='bottom',pad="5%")
     
 
 if __name__ == '__main__':
     
+    #data_path = sys.argv[1]
     data_path = "/home/steffen/Masterarbeit/Daten/mon/tas/"
-
+    
     data = sorted(glob.glob(data_path+'*.nc'))
     
     f = Dataset(data[0], 'r')
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
-    tas = f.variables['pr'][:] #(time,lats,lons)
+    tas = f.variables['tas'][:] #(time,lats,lons)
     gp_mean = f.variables['gp_mean'][:] #(gp_mean,lats,lons)
     
     mean_all = np.zeros((len(data),len(rlats),len(rlons)),'f')
     
-    for name in data:
+    #for name in data:
         
-        f = Dataset(name, 'r')
-        var_new = f.variables[var_in][:] #(time,lats,lons)
+    #    f = Dataset(name, 'r')
+    #    var_new = f.variables[var_in][:] #(time,lats,lons)
         
-        var = np.concatenate((var,var_new),axis=0)
+    #    var = np.concatenate((var,var_new),axis=0)
 
         
     lon_lat_r = np.meshgrid(rlons,rlats)
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     lon_lat_geo = np.meshgrid(lons,lats)
 
-    #plot_basemap(gp_mean[0])
+    plot_basemap(gp_mean[0])
     #plot_basemap(gp_mean[1])
     plt.show()
 

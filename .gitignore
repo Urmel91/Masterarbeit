@@ -5,3 +5,6 @@ hist_data
 mean30_data
 netcdf_read
 README
+*.odt
+*.odt#
+*.pyc
