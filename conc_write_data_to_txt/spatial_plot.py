@@ -158,9 +158,10 @@ if __name__ == '__main__':
       nied[lat_ind,lon_ind] = line[3]
   
   nied = ma.masked_less(nied, 270.0)  
-
-  m = Basemap(projection ='cyl',resolution='l', llcrnrlat=51.31250-0.125-1, llcrnrlon=6.68750-0.125-1, 
-              urcrnrlat=54.0625+1 ,urcrnrlon=11.5626+0.125+1)
+  print(lon)
+  '''
+  m = Basemap(projection ='merc',resolution='l', llcrnrlat=51.31250-0.125, llcrnrlon=6.68750-0.125, 
+              urcrnrlat=54.0625 ,urcrnrlon=11.5626+0.125)
   m.drawcoastlines()
   #m.drawcountries()
   m.fillcontinents(color='lightgrey',alpha=0.2)
@@ -171,8 +172,8 @@ if __name__ == '__main__':
   m.drawmeridians(np.arange(6.68750-0.125,11.5626+0.125,0.125))
   m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
   x,y = m(lon_geo,lat_geo)
-  m.scatter(x,y,alpha=0.5)
-  #cs = m.contourf(x,y,nied, alpha=0.5)
+  #m.scatter(x,y,alpha=0.5)
+  cs = m.contourf(x,y,nied, alpha=0.5)
   plt.show()
 
 
@@ -182,7 +183,7 @@ if __name__ == '__main__':
   #plt.grid(True)
   #plt.show()
   #print(lon_lat[1][0,:]) 
-
+  '''
   
 #--- grid plot   
 '''

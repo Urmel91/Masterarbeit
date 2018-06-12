@@ -1,13 +1,5 @@
 #!/usr/bin/python
 
-# plotting spatial distribution of a variable liek tas, pr, ...
-# the variable is averaged over 30 years in 3 time periods:
-# 1971-2000 (reference period), 2021-2050, 2071-2100
-# possible to distinguish between winter, spring, summer, autumn, year 
-
-# input: [1] var , e.g. tas, pr, tasmax,...
-#        [2] period, 0 for ref period, 1 for 21-50, 2 for 71-00
-
 from netCDF4 import Dataset
 import numpy as np
 import glob 
@@ -84,14 +76,65 @@ def plot_basemap(data, lons, lats):
     
 def read_data(data,data_name):
     f = Dataset(data, 'r')
-    gp_mean = f.variables[data_name][:]
-    gp_mean[0,:,:] = gp_mean[0,:,:] #- 273.15
-    return gp_mean
+    data = f.variables[data_name][:]
+    #data[0,:,:] = data[0,:,:] - 273.15
+    return data
+
+def mon_mean(var):
+    mm = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
+    return(mm)
+
+def year_mean(data):
+    mm = mon_mean(data)
+    ym = np.zeros((10,101),'f')
+    for i in range(len(ym)):
+        for j in range(101):
+            ym[i,j] = np.mean(mm[i,(0+j*12):((30*12)+(j*12))])
+        ym[i] = ym[i] - ym[i,0]    
+    return(ym)
+    
+def niedersachsen(var):
+    data = np.full((len(var),31,34),True)
+    for i in range(len(data)): 
+        data[i,2,19] = False
+        data[i,3,18:23] = False
+        data[i,4,18:26] = False
+        data[i,5,19:26] = False
+        data[i,6,18:26] = False
+        data[i,7,17:26] = False
+        data[i,8,17:28] = False
+        #data[9,10:14] = False
+        data[i,9,16:28] = False
+        data[i,10,10:14] = False
+        data[i,10,16:28] = False
+        data[i,11,16:28] = False
+        data[i,11,10:14] = False
+        #data[12,5:28] = False
+        data[i,12,10:14] = False
+        data[i,12,16:28] = False
+        data[i,13,5:28] = False
+        data[i,14,4:28] = False
+        data[i,15,4:28] = False
+        data[i,16,4:32] = False
+        data[i,17,4:32] = False
+        data[i,18,6:30] = False
+        data[i,19,7:29] = False
+        data[i,20,7:28] = False
+        data[i,21,7:26] = False
+        data[i,22,7:22] = False
+        data[i,23,6:21] = False
+        data[i,24,6:21] = False
+        data[i,25,5:14] = False
+        data[i,25,15:20] = False
+        data[i,26,5:14] = False
+        data[i,26,15:19] = False
+    nied = ma.masked_array(data=var, mask=data, fill_value=0)
+    return(nied)
 
 if __name__ == '__main__':
     
     var = sys.argv[1]
-    period = int(sys.argv[2])
+    #period = int(sys.argv[2])
     
     data_path = "/home/steffen/Masterarbeit/Daten/mon/"+var+"/"
     
@@ -100,47 +143,43 @@ if __name__ == '__main__':
     f = Dataset(data[0], 'r')
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
-    tas = f.variables['tas'][:]
-    
-    
-    #----- ensemble data mean year in one array ---------
-    gp_mean_all = np.array([read_data(ifile,'gp_mean') for ifile in data])
-    gp_mean_all = np.mean(gp_mean_all, axis=0)
-
+        
+    '''
     #----- ensemble data jahreszeiten mean -----------------------
     jz_names = ["djf", "mam", "jja", "son"]
     gp_mean = {}                    
     for jz in jz_names:  
         gp_mean_jz = np.array([jahreszeit(read_data(ifile,'tas'),jz) for ifile in data])       
         gp_mean[jz] = np.mean(gp_mean_jz, axis=0)
-        
+    '''    
     #----- calculate lons, lats in gographical coordinates ------
     lon_lat_r = np.meshgrid(rlons,rlats)
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     #lon_lat_geo = np.meshgrid(lons,lats)
     
-    #print(lons)
+    #----- Niedersachsen Data jedes Modells ----------------------
+    nied = [niedersachsen(read_data(ifile,'tas')) for ifile in data]
     
-    
-    #----- plotting spatial distribution ---------
-    #plot_basemap(gp_mean_all[period], lons, lats)
-    plot_basemap(tas[0], lons, lats)    
+    mm = mon_mean(nied)
+    ym = year_mean(nied)
+    fig, ax = plt.subplots()    
+    ax.plot(np.arange(101),ym[0],'b')
+    ax.plot(np.arange(101),ym[1],'r')
+    ax.plot(np.arange(101),ym[2],'y')
+    ax.plot(np.arange(101),ym[3],'g')
+    ax.plot(np.arange(101),ym[4],'c')
+    ax.plot(np.arange(101),ym[5],'k')
+    ax.plot(np.arange(101),ym[6],'m')
+    ax.plot(np.arange(101),ym[7],'lightgreen')
+    ax.plot(np.arange(101),ym[8],'magenta')
+    ax.plot(np.arange(101),ym[9],'orange')    
     plt.show()
+    #foo = np.array([1,2,2,4,8,6,6])
     
-'''
-#---- plot in ein fenster   
-    fig = plt.figure(1)
-    
-    plt.subplot(3,1,1)    
-    plot_basemap(gp_mean[0])
-    
-    plt.subplot(3,1,2)    
-    plot_basemap(gp_mean[1])
 
-    plt.subplot(3,1,3)    
-    plot_basemap(gp_mean[2])
+    #----- plotting spatial distribution ---------
+    #plot_basemap(nied[0][0], lons, lats)
+    #plt.show()
     
-    plt.show()
-'''    
 
 
