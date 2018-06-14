@@ -47,24 +47,24 @@ if __name__ == '__main__':
         var_new = f.variables[var_in][:] #(time,lats,lons)
         var = np.concatenate((var,var_new),axis=0)
 
-    gp_mean = mean30(var)
+    #gp_mean = mean30(var)
        
 #------ write to netcdf file ------------------------------
-    fileobj = Dataset(out_file+'_gp_mean.nc', 'w')
+    fileobj = Dataset(out_file+'.nc', 'w')
     fileobj.createDimension('rlat', len(rlats))
     fileobj.createDimension('rlon', len(rlons))
     fileobj.createDimension('time', np.shape(var)[0])
-    fileobj.createDimension('gp_mean', np.shape(gp_mean)[0])
+    #fileobj.createDimension('gp_mean', np.shape(gp_mean)[0])
     
     lat_var = fileobj.createVariable('rlat', 'f', ('rlat',))
     lon_var = fileobj.createVariable('rlon', 'f', ('rlon',))
     var_var = fileobj.createVariable(var_in, 'f', ('time','rlat','rlon'))
-    mean_var = fileobj.createVariable('gp_mean', 'f', ('gp_mean','rlat','rlon'))
+    #mean_var = fileobj.createVariable('gp_mean', 'f', ('gp_mean','rlat','rlon'))
     
     lat_var[:] = rlats[:]
     lon_var[:] = rlons[:]
     var_var[:,:,:] = var[:,:,:]
-    mean_var[:,:,:] = gp_mean[:,:,:]
+    #mean_var[:,:,:] = gp_mean[:,:,:]
     fileobj.title = out_file
     print("...creating file was succesfull!")
     fileobj.close()
