@@ -6,11 +6,16 @@ pat=~/Masterarbeit/Daten/${1}/${2}/${3}/${4}/
 if [[ ${5} =~ "-r" ]]; then
     
     read -p "Do you want to cut out lower saxony? [j/n]: " cut
-
-    if [[ ${cut} =~ "j" ]]; then
     
+    endnc=12
+    if [[ ${cut} =~ "j" ]]; then
+        
+        
+        if [[ ${1} =~ "daily" ]]; then
+            endnc=31
+        fi
         count=0
-        for infile in ${pat}${2}*12.nc; do
+        for infile in ${pat}${2}*${endnc}.nc; do
             outfile=$(echo ${infile} | sed "s/.nc/_${count}_n.nc/g")
             ./nc_read_write.py ${infile} ${outfile} ${2}
             ((count++))
@@ -24,7 +29,7 @@ if [[ ${5} =~ "-r" ]]; then
     
     if [[ ${janein} =~ "j" ]]; then
         echo "deleting files..."
-        mv ${pat}*12.nc ~/.local/share/Trash/files/
+        mv ${pat}*${endnc}.nc ~/.local/share/Trash/files/
     else
         echo "stop script..."
         exit

@@ -77,7 +77,47 @@ def year_mean(data, jz):
             start = (s+12*j) 
             end = (e+12*j) 
             ym[i,j] = np.mean(mm[i,start:end])
-    return(ym)    
+    return(ym)        
+
+def mean_day(var):
+    md = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
+    return(md)
+    
+
+def mean_year_gp(data):
+    mean_gp = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
+    year = np.arange(1971,2101)
+    day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+    end = 0
+    for iyear in year:
+        if ( schaltjahr(iyear) ):
+            day_month[1] = 29
+        else:
+            day_month[1] = 28
+        start = end
+        end = sum(day_month) + end
+        index = iyear - 1971
+        mean_gp[index] = np.mean(data[start:end,:,:], axis = 0)
+        '''
+        for i in range(start, end):
+            mean_gp[index]
+        for days in day_month:
+            days = start + days
+            mean_mon[] = np.mean(data[start:days,:,:], axis=0)
+            start = start+days
+        '''
+    return(mean_gp)    
+
+def schaltjahr(jahr):
+    if jahr % 400 == 0:
+        return True
+    elif jahr % 100 == 0:
+        return False
+    elif jahr % 4 == 0:
+        return True
+    else:
+        return False
+
 
 def niedersachsen(var):
     data = np.full((len(var),31,34),True)
@@ -137,24 +177,32 @@ def plot_basemap(data, lons, lats):
     cbar = m.colorbar(cs,location='bottom',pad="5%")
 
 def plot_ts(var):
-    ax.plot(np.arange(101),var[0],'b')
-    ax.plot(np.arange(101),var[1],'r')
-    ax.plot(np.arange(101),var[2],'y')
-    ax.plot(np.arange(101),var[3],'g')
-    ax.plot(np.arange(101),var[4],'c')
-    ax.plot(np.arange(101),var[5],'k')
-    ax.plot(np.arange(101),var[6],'m')
-    ax.plot(np.arange(101),var[7],'lightgreen')
-    ax.plot(np.arange(101),var[8],'magenta')
-    ax.plot(np.arange(101),var[9],'orange')    
+    fig, ax = plt.subplots()
+    for i in range(len(var)):
+        ax.plot(np.arange(101),var[i])
+    plt.show()    
 
+def plot_bandbreite(var, names, savename):
+    fig, ax = plt.subplots()
+    for i in range(len(var)):
+        ax.bar(i, max(var[i,:]), width=0.4, bottom=min(var[i,:]),color='lightblue')
+        ax.plot([i-0.2,i+0.2],[np.median(var[i,:]),np.median(var[i,:])],'r')
+    xmin,xmax = plt.xlim()    
+    ax.plot([xmin,xmax],[0,0],color = 'grey',linestyle = '--')    
+    ax.set_ylim(-0.5,max(np.max(var,axis=1))+1)
+    ax.set_xlim((xmin,xmax))
+    plt.xticks(np.arange(5),names)
+    plt.savefig(savename+".pdf")
+    plt.show()
+    
 
 if __name__ == '__main__':
     
-    var = sys.argv[1]
-    jz = sys.argv[2]
+    time = sys.argv[1]
+    var = sys.argv[2]
+    jz = sys.argv[3]
     
-    data_path = "/home/steffen/Masterarbeit/Daten/mon/"+var+"/"
+    data_path = "/home/steffen/Masterarbeit/Daten/"+time+"/"+var+"/"
     
     data = sorted(glob.glob(data_path+'*.nc'))
 
@@ -177,18 +225,23 @@ if __name__ == '__main__':
     
     #----- Niedersachsen Data jedes Modells ----------------------
     nied = [niedersachsen(read_data(ifile, var)) for ifile in data]
+    #print(np.shape(mean_day(nied)))
     
-    #----- Gebietsmittel berechnen -------------------------------    
-    ym = year_mean(nied,jz)
-    fm = floating_mean(nied, jz)
+    #----- Gebietsmittel berechnen ------------------------------- 
+    jz_names = ["year", "djf", "mam", "jja", "son"]
+    sig21_50 = np.array([floating_mean(nied, jz)[:,50] for jz in jz_names])
+    #sig71_00 = np.array([floating_mean(nied, jz)[:,100] for jz in jz_names])
+    #ym = year_mean(nied,jz)
+    #fm = floating_mean(nied, jz)
     
     
     #----- Plotten der Zeitreihen der Temperatur -----------------
-    fig, ax = plt.subplots()
-    plot_ts(fm)
-    plt.show()
+    #plot_ts(fm)
     
-
+    #----- Bandbreite plotten -----------------------------------
+    plot_bandbreite(sig21_50, jz_names, var+"2021_2050")
+    
+    
     #----- plotting spatial distribution ---------
     #plot_basemap(nied[0][0], lons, lats)
     #plt.show()
