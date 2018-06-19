@@ -16,10 +16,8 @@ import numpy as np
 import glob 
 import matplotlib.pyplot as plt  
 import sys
-import numpy.ma as ma
 from matplotlib import colors
 from mpl_toolkits.basemap import Basemap
-from scipy.interpolate import griddata
 import coord_trafo as ct
 
         
@@ -50,6 +48,9 @@ def floating_mean(data, jz):
         fm[i,:] = fm[i,:] - fm[i,0]        
     return(fm)                    
 
+#----- spatial average as year mean ---------
+#< input: monthly data
+#< do it for daily data also?
 def year_mean(data, jz):
     mm = mon_mean(data)
     ym = np.zeros((10,130), 'f')
@@ -79,11 +80,13 @@ def year_mean(data, jz):
             ym[i,j] = np.mean(mm[i,start:end])
     return(ym)        
 
+#----- spatial average of lower saxony of daily data ------------
 def mean_day(var):
     md = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
     return(md)
     
-
+#----- spatial distribution of daily data ------------------
+# < nur zur kontrolle
 def mean_year_gp(data):
     mean_gp = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
     year = np.arange(1971,2101)
@@ -119,47 +122,30 @@ def schaltjahr(jahr):
         return False
 
 
-def niedersachsen(var):
-    data = np.full((len(var),31,34),True)
-    for i in range(len(data)): 
-        data[i,2,19] = False
-        data[i,3,18:23] = False
-        data[i,4,18:26] = False
-        data[i,5,19:26] = False
-        data[i,6,18:26] = False
-        data[i,7,17:26] = False
-        data[i,8,17:28] = False
-        #data[9,10:14] = False
-        data[i,9,16:28] = False
-        data[i,10,10:14] = False
-        data[i,10,16:28] = False
-        data[i,11,16:28] = False
-        data[i,11,10:14] = False
-        #data[12,5:28] = False
-        data[i,12,10:14] = False
-        data[i,12,16:28] = False
-        data[i,13,5:28] = False
-        data[i,14,4:28] = False
-        data[i,15,4:28] = False
-        data[i,16,4:32] = False
-        data[i,17,4:32] = False
-        data[i,18,6:30] = False
-        data[i,19,7:29] = False
-        data[i,20,7:28] = False
-        data[i,21,7:26] = False
-        data[i,22,7:22] = False
-        data[i,23,6:21] = False
-        data[i,24,6:21] = False
-        data[i,25,5:14] = False
-        data[i,25,15:20] = False
-        data[i,26,5:14] = False
-        data[i,26,15:19] = False
-    nied = ma.masked_array(data=var, mask=data, fill_value=0)
-    return(nied)
+def plot_ts(var):
+    fig, ax = plt.subplots()
+    for i in range(len(var)):
+        ax.plot(np.arange(15,116),var[i])
+    plt.xticks(np.arange(0,131,10),np.arange(1971,2101,10))
+    plt.grid()    
+    plt.show()    
+
+def plot_bandbreite(var, names):
+    #fig, ax = plt.subplots()
+    for i in range(len(var)):
+        start = abs(max(var[i,:])-min(var[i,:]))
+        plt.bar(i, height=start, width=0.4, bottom=min(var[i,:]),color='lightblue')
+        plt.plot([i-0.2,i+0.2],[np.median(var[i,:]),np.median(var[i,:])],'r')
+    xmin,xmax = plt.xlim()    
+    plt.plot([xmin,xmax],[0,0],color = 'grey',linestyle = '--')    
+    #ax.set_ylim(-0.5,max(np.max(var,axis=1))+1)
+    plt.ylim(-0.5,6)
+    plt.xlim((xmin,xmax))
+    plt.xticks(np.arange(5),names)
 
 def plot_basemap(data, lons, lats):
-    m = Basemap(projection ='cyl',resolution='l', llcrnrlat=51.31250-0.125-1, llcrnrlon=6.68750-0.125-1, 
-              urcrnrlat=54.0625+1 ,urcrnrlon=11.5626+0.125+1)
+    m = Basemap(projection ='cyl',resolution='l', llcrnrlat=51.31250-0.125, llcrnrlon=6.68750-0.125, 
+              urcrnrlat=54.0625 ,urcrnrlon=11.5626+0.125)
     m.drawcoastlines()
     #m.drawcountries()
     m.drawmapboundary()
@@ -172,35 +158,19 @@ def plot_basemap(data, lons, lats):
     #m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
     x,y = m(lons,lats)
     #m.scatter(x,y,alpha=0.5)
-    #cs = m.contourf(x,y,data, np.arange(278.0, 286.0, .25), alpha=0.6)
-    cs = m.contourf(x,y,data, alpha=0.6)
-    cbar = m.colorbar(cs,location='bottom',pad="5%")
+    #cs = m.contourf(x,y,data, np.arange(0, 5.0, .1), cmap=plt.cm.get_cmap('hot'),alpha=0.8)
+    #cs = m.contourf(x,y,data, alpha=0.6)
+    plt.pcolormesh(lons, lats, data)
+    cbar = plt.colorbar(orientation='horizontal', shrink=0.625, aspect=20, fraction=0.2,pad=0.02)
+    #cbar = m.colorbar(cs,location='bottom',pad="5%")
+    #plt.show()
 
-def plot_ts(var):
-    fig, ax = plt.subplots()
-    for i in range(len(var)):
-        ax.plot(np.arange(101),var[i])
-    plt.show()    
-
-def plot_bandbreite(var, names, savename):
-    fig, ax = plt.subplots()
-    for i in range(len(var)):
-        ax.bar(i, max(var[i,:]), width=0.4, bottom=min(var[i,:]),color='lightblue')
-        ax.plot([i-0.2,i+0.2],[np.median(var[i,:]),np.median(var[i,:])],'r')
-    xmin,xmax = plt.xlim()    
-    ax.plot([xmin,xmax],[0,0],color = 'grey',linestyle = '--')    
-    ax.set_ylim(-0.5,max(np.max(var,axis=1))+1)
-    ax.set_xlim((xmin,xmax))
-    plt.xticks(np.arange(5),names)
-    plt.savefig(savename+".pdf")
-    plt.show()
-    
 
 if __name__ == '__main__':
     
     time = sys.argv[1]
     var = sys.argv[2]
-    jz = sys.argv[3]
+    opt = sys.argv[3]
     
     data_path = "/home/steffen/Masterarbeit/Daten/"+time+"/"+var+"/"
     
@@ -211,40 +181,37 @@ if __name__ == '__main__':
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
         
-    '''
-    #----- ensemble data jahreszeiten mean -----------------------
-    jz_names = ["djf", "mam", "jja", "son"]
-    gp_mean = {}                    
-    for jz in jz_names:  
-        gp_mean_jz = np.array([jahreszeit(read_data(ifile,'tas'),jz) for ifile in data])       
-        gp_mean[jz] = np.mean(gp_mean_jz, axis=0)
-    '''    
     #----- calculate lons, lats in gographical coordinates ------
     lon_lat_r = np.meshgrid(rlons,rlats)
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     
     #----- Niedersachsen Data jedes Modells ----------------------
-    nied = [niedersachsen(read_data(ifile, var)) for ifile in data]
-    #print(np.shape(mean_day(nied)))
+    nied = [ct.niedersachsen(read_data(ifile, var)) for ifile in data]
     
-    #----- Gebietsmittel berechnen ------------------------------- 
-    jz_names = ["year", "djf", "mam", "jja", "son"]
-    sig21_50 = np.array([floating_mean(nied, jz)[:,50] for jz in jz_names])
-    #sig71_00 = np.array([floating_mean(nied, jz)[:,100] for jz in jz_names])
-    #ym = year_mean(nied,jz)
-    #fm = floating_mean(nied, jz)
+    #----- Gebietsmittel 30 years berechnen ------------------------------- 
+    if ( opt == "ts" ):
+        jz = sys.argv[4]
+        #ym = year_mean(nied,jz)
+        fm = floating_mean(nied, jz)
+        plot_ts(fm)
     
+    #----- Bandbreiten berechnen ---------------------------------
+    elif ( opt == "bb" ):
+        jz_names = ["year", "djf", "mam", "jja", "son"]
+        sig = []
+        for i in range(1,3):
+            sig.append(np.array([floating_mean(nied, jz)[:,i*50] for jz in jz_names]))
+
+        for i in range(1,3):
+            plt.subplot(1,2,i)    
+            plot_bandbreite(sig[i-1], jz_names)
+        plt.savefig(var +"_"+ opt+".pdf")
+        plt.show()
     
-    #----- Plotten der Zeitreihen der Temperatur -----------------
-    #plot_ts(fm)
-    
-    #----- Bandbreite plotten -----------------------------------
-    plot_bandbreite(sig21_50, jz_names, var+"2021_2050")
-    
-    
+    else:
     #----- plotting spatial distribution ---------
-    #plot_basemap(nied[0][0], lons, lats)
-    #plt.show()
+        plot_basemap(nied[0][0], lons, lats)
+        plt.show()
     
 
 

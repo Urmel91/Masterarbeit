@@ -44,7 +44,7 @@ if __name__ == '__main__':
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
     var = f.variables[var_in][:] #(time,lats,lons)
-    
+        
     lon_lat_r = np.meshgrid(rlons,rlats)
 
 #------ Niedersachsen-Gitter ------------
@@ -72,9 +72,9 @@ if __name__ == '__main__':
     
     var_n = var[:,lat_min_ind:lat_max_ind,lon_min_ind:lon_max_ind]
    
-
+    f.close()
 #------ write to netcdf file ------------------------------
-    #fileobj = Dataset('/home/steffen/Masterarbeit/Daten/mon/tas/CNRM/cclm/new.nc', 'w')
+    #fileobj = Dataset('/home/steffen/Masterarbeit/Daten/daily/tasmax/MPI/cclm/new.nc', 'w')
     fileobj = Dataset(out_file, 'w')
     fileobj.createDimension('rlat', len(lats))
     fileobj.createDimension('rlon', len(lons))
