@@ -1,12 +1,14 @@
 #!/usr/bin/python
 
-# plotting spatial distribution of a variable like tas, pr, ...
+# plotting spatial distribution oder spatial avergae of a variable like tas, pr, ...
 # the variable is averaged over 30 years:
 # 1971-2000 fm[0](reference period), 2021-2050 fm[50], 2071-2100 fm[100]
 # possible to distinguish between winter, spring, summer, autumn, year 
 
-# input: [1] var , e.g. tas, pr, tasmax,...
-#        [2] period, 0 for ref period, 1 for 21-50, 2 for 71-00
+# input: [1] time , wich data: mon or daily
+#        [2] var , e.g. tas, pr, tasmax,...
+#        [3] jz, e.g. djf, mam,...
+#        [4] opt, what to plot? spatial dis (spat),...
 
 from netCDF4 import Dataset
 import numpy as np
@@ -26,7 +28,7 @@ def read_data(data,data_name):
 
 #----------------------------------------------------------------
 #< year mean of monthly data. in every year the mean of the jz will
-#< be calculated.
+#< be calculated for every gp.
 def year_mean_gp(data, jz):
     ym = np.zeros((130,31,34), 'f')
 
@@ -79,7 +81,52 @@ def mean_year_gp(data):
         end = sum(day_month) + end
         index = iyear - 1971
         mean_gp[index] = np.mean(data[start:end,:,:], axis = 0)
+    mean_gp = ct.niedersachsen(mean_gp)    
     return(mean_gp)    
+
+#------ waermeperiode ------------------------------------------
+#< output: Anzahl Tage hintereinander mit T_max > 25 Grad
+#< als array mit fm[0] 
+def heatperiod(data):
+    fm = np.zeros((3,np.shape(data)[1],np.shape(data)[2]),'f')
+    heatdays_year = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
+    year = np.arange(1971,2101)
+    day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+    end = 0
+    for iyear in year:
+        if ( schaltjahr(iyear) ):
+            day_month[1] = 29
+        else:
+            day_month[1] = 28
+        start = end
+        end = sum(day_month) + end
+        index = iyear - 1971
+        #if ()
+        heatdays_year[index] = heatperiod_counter(data[start:end,:,:])
+    for j in range(3):
+        fm[j,:,:] = np.mean(ct.niedersachsen(heatdays_year[(0+j*50):(30+j*50),:,:]),axis=0)
+    fm[1,:,:] = fm[1,:,:] - fm[0,:,:]
+    fm[2,:,:] = fm[2,:,:] - fm[0,:,:]
+    #fm = ct.niedersachsen(fm)
+    return(fm)    
+    
+def heatperiod_counter(data):
+    counter = np.zeros(np.shape(data),'i')
+    max_dauer = np.zeros((np.shape(data)[1],np.shape(data)[2]),'i')
+    for iday in range(len(data)):
+        for lon in range(len(data[iday])):
+            for lat in range(len(data[iday,lon])):
+                if(data[iday, lon, lat] > (273.15+25)):
+                    counter[iday,lon,lat] = counter[iday-1,lon,lat] + 1
+                    if (counter[iday,lon,lat] > max_dauer[lon,lat]):
+                        max_dauer[lon,lat] = counter[iday,lon,lat]
+                        
+                else:
+                    if (counter[iday-1,lon,lat] > max_dauer[lon,lat]):
+                        max_dauer[lon,lat] = counter[iday-1,lon,lat]
+                    counter[iday,lon,lat] = 0
+    return(max_dauer)                
+    
 
 #----- spatial average of lower saxony of daily data ------------
 def mean_day(var):
@@ -114,10 +161,10 @@ def plot_basemap(data, lons, lats):
     #m.scatter(x,y,alpha=0.5)
     #cs = m.contourf(x,y,data, np.arange(0, 5.0, .1), cmap=plt.cm.get_cmap('hot'),alpha=0.8)
     #cs = m.contourf(x,y,data, alpha=0.6)
-    m.pcolormesh(x, y, data)
+    m.pcolormesh(x, y, data, cmap=plt.cm.get_cmap('Blues', 8))
     cbar = plt.colorbar(orientation='horizontal', shrink=0.625, aspect=20, fraction=0.2,pad=0.02)
     #cbar = m.colorbar(cs,location='bottom',pad="5%")
-    #plt.show()
+    plt.show()
 
 def plot_ts(var):
     fig, ax = plt.subplots()
@@ -161,33 +208,39 @@ if __name__ == '__main__':
     lon_lat_r = np.meshgrid(rlons,rlats)
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     
-    nied = [ct.niedersachsen(read_data(ifile, var)) for ifile in data]
-    
-    #----- ensemble data jahreszeiten mean every GP -----------------------
-    #< erzeugt mir dic in dem fur jede jahreszeit uber alle ensembles 30 jahresmittel
-    #< jedes GP stehen.
-    jz_names = ["year","djf", "mam", "jja", "son"]
-    gp_mean = {}
-    gp_ensemble = {}
-    for name in jz_names:  
-        gp_ensemble[name] = [floating_mean(read_data(ifile,var),name) for ifile in data]
-        gp_mean[name] = ct.niedersachsen(np.mean(gp_ensemble[name],axis=0))
+    if ( time == "mon" ):
+        #----- ensemble data jahreszeiten mean every GP -----------------------
+        #< erzeugt mir dic in dem fur jede jahreszeit uber alle ensembles 30 jahresmittel
+        #< jedes GP stehen.
+        jz_names = ["year","djf", "mam", "jja", "son"]
+        gp_mean = {}
+        gp_ensemble = {}
+        for name in jz_names:  
+            gp_ensemble[name] = [floating_mean(read_data(ifile,var),name) for ifile in data]
+            gp_mean[name] = ct.niedersachsen(np.mean(gp_ensemble[name],axis=0))
         
-    #-------ensemble data spatial floating mean ---------------------------
-    #< jede jz hat liste mit spatial mean jedes modells for every time step
-    fm_jz = {}
-    for name in jz_names:
-        fm = []
-        for i in range(len(gp_ensemble[name])):
-            fm.append([np.mean(gp_ensemble[name][i][j]) for j in range(len(gp_ensemble[name][i]))])
+        #-------ensemble data spatial floating mean ---------------------------
+        #< jede jz hat liste mit spatial mean jeden modells for every time step
+        #< average over every gp in lower saxony.
+        fm_jz = {}
+        for name in jz_names:
+            fm = []
+            for i in range(len(gp_ensemble[name])):
+                fm.append([np.mean(gp_ensemble[name][i][j]) for j in range(len(gp_ensemble[name][i]))])
             
-        fm_jz[name] = np.array(fm)
+            fm_jz[name] = np.array(fm)
     
+    elif (time == "daily" ):
+        hd = [heatperiod(read_data(ifile,var)) for ifile in data]
+        w = np.mean(hd[:], axis=0)
+        print(np.shape(w[0]))
+                
+                        
     #----- plotting spatial distribution ---------
     if ( opt == "spat" ):    
-        plot_basemap(gp_mean["year"][50], lons, lats)
-        plt.show()
-    
+        #plot_basemap(gp_mean["year"][50], lons, lats)
+        plot_basemap(w[0], lons, lats)
+        #plot_basemap(w[1], lons, lats)
     #----- Gebietsmittel 30 years berechnen ------------------------------- 
     elif ( opt == "ts" ):
         plot_ts(fm_jz[jz])
@@ -198,7 +251,7 @@ if __name__ == '__main__':
         sig = []
         for i in range(1,3):
             sig.append([fm_jz[j][:,i*50] for j in jz_names])
-        print(np.shape(sig))
+        
         for i in range(1,3):
             plt.subplot(1,2,i)    
             plot_bandbreite(sig[i-1], jz_names)
