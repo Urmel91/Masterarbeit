@@ -1,5 +1,8 @@
 #!/bin/bash
 
+#< read in the data of europe und cut out lower saxony 
+#< and concat the data of the timeperiod 1971-2100 in one nc-file 
+
 pat=~/Masterarbeit/Daten/${1}/${2}/${3}/${4}/
 
 

@@ -19,41 +19,115 @@ import sys
 from matplotlib import colors
 from mpl_toolkits.basemap import Basemap
 import coord_trafo as ct
+import mod_calculations as ca
+import numpy.ma as ma
 
-        
-def read_data(data,data_name):
-    f = Dataset(data, 'r')
-    data = f.variables[data_name][:]
-    #data[0,:,:] = data[0,:,:] - 273.15
-    return data
+#< year mean of monthly data. in every year the mean of the jz will
+#< be calculated for every gp.
+def year_mean_gp(data, jz):
+    ym = ma.array(np.zeros((130,31,34), 'f'))
 
+    if ( jz == "year" ):
+        s = 0; e = 12
+    if ( jz == "mam" ):
+        s = 2; e = 5
+    elif ( jz == "jja" ):
+        s = 5; e = 8
+    elif ( jz == "son" ):
+        s = 8; e = 11
+    elif (jz == "djf" ):
+        s = 0; e = 2
+        for j in range(130):
+            start = (s+12*j) 
+            end = (e+12*j)
+            foo = np.concatenate((data[start:end,:,:],[data[start+11,:,:]]))
+            ym[j,:,:] = np.mean(foo,axis=0)
+        return(ym)
+    
+    for j in range(130):
+        start = (s+12*j) 
+        end = (e+12*j) 
+        ym[j,:,:] = np.mean(data[start:end,:,:],axis=0)
+    return(ym)    
+
+def floating_mean(data, jz, v):
+    data = year_mean_gp(data, jz)
+    fm = ma.array(np.zeros((101,31,34),'f'))
+    for j in range(101):
+        fm[j,:,:] = np.mean(data[(0+j):(30+j),:,:],axis=0)
+    if v == 'tas':
+        fm[:,:,:] = fm[:,:,:] - fm[0,:,:]
+    elif v == 'pr':
+        fm[:,:,:] = (fm[:,:,:]/fm[0,:,:]-1)*100
+    #fm = ct.niedersachsen(fm)
+    return(fm)                    
+
+
+#----- spatial distribution of daily data ------------------
+#< fur jeden GP wird jahrliches mittel erzeugt aus daily data
+def mean_year_gp(data):
+    mean_gp = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
+    year = np.arange(1971,2101)
+    day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+    end = 0
+    for iyear in year:
+        if ( schaltjahr(iyear) ):
+            day_month[1] = 29
+        else:
+            day_month[1] = 28
+        start = end
+        end = sum(day_month) + end
+        index = iyear - 1971
+        mean_gp[index] = np.mean(data[start:end,:,:], axis = 0)
+    mean_gp = ct.niedersachsen(mean_gp)    
+    return(mean_gp)    
+
+#----- spatial average of lower saxony of daily data ------------
+def mean_day(var):
+    md = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
+    return(md)
+
+def schaltjahr(jahr):
+    if jahr % 400 == 0:
+        return True
+    elif jahr % 100 == 0:
+        return False
+    elif jahr % 4 == 0:
+        return True
+    else:
+        return False
+    
+
+#---------------------------------------------------------------------
+#------------ functions fur raumliche mittelung, zeitreihen ----------
+#---------------------------------------------------------------------
+
+    
 def mon_mean(var):
     mm = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
     return(mm)
-'''
-def year_mean(data):
-    mm = mon_mean(data)
-    ym = np.zeros((10,130),'f')    
-    for i in range(len(ym)):
-        for j in range(len(ym[0])):
-            ym[i,j] = np.mean(mm[i,(0+12*j):(12+12*j)])
-    return(ym)
-'''
-def floating_mean(data, jz):
+
+def floating_mean_ts(data, jz,v):
     data = year_mean(data, jz)
-    fm = np.zeros((10,101),'f')
+    fm = np.zeros((9,101),'f')
     for i in range(len(fm)):
         for j in range(101):
             fm[i,j] = np.mean(data[i,(0+j):(30+j)])
-        fm[i,:] = fm[i,:] - fm[i,0]        
+        #ausklammern wenn nicht saisonal_av_...
+        #if v == 'tas':
+        #    fm[i,:] = fm[i,:] - fm[i,0]
+        #elif v == 'pr':
+        #    fm[i,:] = (fm[i,:]/fm[i,0]-1)*100
+    
     return(fm)                    
+
 
 #----- spatial average as year mean ---------
 #< input: monthly data
 #< do it for daily data also?
 def year_mean(data, jz):
     mm = mon_mean(data)
-    ym = np.zeros((10,130), 'f')
+    ym = np.zeros((9,130), 'f')
 
     if ( jz == "year" ):
         s = 0; e = 12
@@ -76,8 +150,9 @@ def year_mean(data, jz):
     for i in range(len(ym)):
         for j in range(130):
             start = (s+12*j) 
-            end = (e+12*j) 
+            end = (e+12*j)
             ym[i,j] = np.mean(mm[i,start:end])
+                    
     return(ym)        
 
 #----- spatial average of lower saxony of daily data ------------
@@ -111,60 +186,7 @@ def mean_year_gp(data):
         '''
     return(mean_gp)    
 
-def schaltjahr(jahr):
-    if jahr % 400 == 0:
-        return True
-    elif jahr % 100 == 0:
-        return False
-    elif jahr % 4 == 0:
-        return True
-    else:
-        return False
-
-
-def plot_ts(var):
-    fig, ax = plt.subplots()
-    for i in range(len(var)):
-        ax.plot(np.arange(15,116),var[i])
-    plt.xticks(np.arange(0,131,10),np.arange(1971,2101,10))
-    plt.grid()    
-    plt.show()    
-
-def plot_bandbreite(var, names):
-    #fig, ax = plt.subplots()
-    for i in range(len(var)):
-        start = abs(max(var[i,:])-min(var[i,:]))
-        plt.bar(i, height=start, width=0.4, bottom=min(var[i,:]),color='lightblue')
-        plt.plot([i-0.2,i+0.2],[np.median(var[i,:]),np.median(var[i,:])],'r')
-    xmin,xmax = plt.xlim()    
-    plt.plot([xmin,xmax],[0,0],color = 'grey',linestyle = '--')    
-    #ax.set_ylim(-0.5,max(np.max(var,axis=1))+1)
-    plt.ylim(-0.5,6)
-    plt.xlim((xmin,xmax))
-    plt.xticks(np.arange(5),names)
-
-def plot_basemap(data, lons, lats):
-    m = Basemap(projection ='cyl',resolution='l', llcrnrlat=51.31250-0.125, llcrnrlon=6.68750-0.125, 
-              urcrnrlat=54.0625 ,urcrnrlon=11.5626+0.125)
-    m.drawcoastlines()
-    #m.drawcountries()
-    m.drawmapboundary()
-
-    m.readshapefile('/home/steffen/germany_map/gadm36_DEU_0','gadm36_DEU_0', drawbounds=True)
-    m.readshapefile('/home/steffen/germany_map/gadm36_DEU_1','gadm36_DEU_1', drawbounds=True)
-    #m.drawmeridians(lons)
-    #m.drawparallels(lats)    
-    #m.drawmeridians(np.arange(6.68750-0.125,11.5626+0.125,0.125))
-    #m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
-    x,y = m(lons,lats)
-    #m.scatter(x,y,alpha=0.5)
-    #cs = m.contourf(x,y,data, np.arange(0, 5.0, .1), cmap=plt.cm.get_cmap('hot'),alpha=0.8)
-    #cs = m.contourf(x,y,data, alpha=0.6)
-    plt.pcolormesh(lons, lats, data)
-    cbar = plt.colorbar(orientation='horizontal', shrink=0.625, aspect=20, fraction=0.2,pad=0.02)
-    #cbar = m.colorbar(cs,location='bottom',pad="5%")
-    #plt.show()
-
+        
 
 if __name__ == '__main__':
     
@@ -186,32 +208,82 @@ if __name__ == '__main__':
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
     
     #----- Niedersachsen Data jedes Modells ----------------------
-    nied = [ct.niedersachsen(read_data(ifile, var)) for ifile in data]
+    #nied = [ct.niedersachsen(ca.read_data(ifile, var)) for ifile in data]
     
+    nied = ma.array(np.zeros((9,1560,31,34),'f'))
+    #nied = np.zeros((9,1560,31,34),'f')
+    for i, ifile in enumerate(data):
+        nied[i] = ct.niedersachsen(ca.read_data(ifile, var))
+
+    #------ Datenaufbereitung --------------------------------------
+    '''
+    if (var == 'pr' ):
+        day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
+        for i in range(9):
+            for j in range(1560):
+                nied[i,j,:,:] =  nied[i,j,:,:] * day_month[j%12]*60*60*24
+    '''            
     #----- Gebietsmittel 30 years berechnen ------------------------------- 
     if ( opt == "ts" ):
         jz = sys.argv[4]
-        #ym = year_mean(nied,jz)
-        fm = floating_mean(nied, jz)
-        plot_ts(fm)
+        
+        fm = ca.floating_mean_ts(nied, jz,var)
+        ym = ca.year_mean(nied, jz)
+        #---- Normieren auf Referenzzeitraum 1971-2000 (floating mean)---
+        for i in range(len(ym)):
+            if var == 'tas':
+                ym[i,:] = ym[i,:] - fm[i,0]
+                fm[i,:] = fm[i,:] - fm[i,0]
+            elif var == 'pr':
+                ym[i,:] = (ym[i,:]/fm[i,0]-1)*100
+                fm[i,:] = (fm[i,:]/fm[i,0]-1)*100
+        fm_e = np.mean(fm, axis=0)
+        ca.plot_ts(fm, ym, fm_e, var, jz)
     
     #----- Bandbreiten berechnen ---------------------------------
     elif ( opt == "bb" ):
+        #ausklammern von floating_mean_ts in mod_calculations
         jz_names = ["year", "djf", "mam", "jja", "son"]
         sig = []
         for i in range(1,3):
-            sig.append(np.array([floating_mean(nied, jz)[:,i*50] for jz in jz_names]))
-
+            sig.append(np.array([ca.floating_mean_ts(nied, jz, var)[:,i*50] for jz in jz_names]))
+            
+        zeit = ['2021-2050', '2071-2100']
+        fig = plt.figure()
+        fig.subplots_adjust(wspace=0.5)
         for i in range(1,3):
-            plt.subplot(1,2,i)    
-            plot_bandbreite(sig[i-1], jz_names)
+            ax = fig.add_subplot(1,2,i)
+            ax.set_title('Klimaaenderungssignal {}'.format(zeit[i-1]), fontsize=10)
+            if var == 'tas':
+                ax.set_ylabel('$\Delta$ Temperatur [K]')
+
+            elif var == 'pr':
+                ax.set_ylabel('$\Delta$ Niederschlag [%]')
+        
+        plt.savefig(var +"_"+ opt+".pdf")
+        plt.savefig(var +"_2071_"+ opt+".pdf")
+        
+        plt.show()
+        '''
+        for i in range(1,3):
+            plt.subplot(1,2,i) 
+            if var == 'tas':
+                plt.ylabel('$\Delta$ Temperatur [K]')
+                plt.set_title('hallo')
+            elif var == 'pr':
+                plt.ylabel('$\Delta$ Niederschlag [%]')
+
+            ca.plot_bandbreite(sig[i-1], jz_names, var)
+        plt.subplots_adjust(wspace=0.5)    
         plt.savefig(var +"_"+ opt+".pdf")
         plt.show()
+        '''
+    #----- plotting spatial distribution ---------
+    elif ( opt == "spat" ):
+        ca.plot_basemap(nied[0,1559,:,:], lons, lats, var, time)
     
     else:
-    #----- plotting spatial distribution ---------
-        plot_basemap(nied[0][0], lons, lats)
-        plt.show()
-    
+        sys.exit()
+       
 
 

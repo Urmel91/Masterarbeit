@@ -1,4 +1,4 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
 '''
 ----------------------------------------------------
@@ -36,14 +36,14 @@ def max_min(lon_lat, mi_ma):
 
 if __name__ == '__main__':
     
-    in_file = sys.argv[1]
-    out_file = sys.argv[2]
-    var_in = sys.argv[3]
+    infile = sys.argv[1]
+    outfile = sys.argv[2]
+    varin = sys.argv[3]
           
-    f = Dataset(in_file, 'r')
+    f = Dataset(infile, 'r')
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
-    var = f.variables[var_in][:] #(time,lats,lons)
+    var = f.variables[varin][:] #(time,lats,lons)
         
     lon_lat_r = np.meshgrid(rlons,rlats)
 
@@ -75,19 +75,19 @@ if __name__ == '__main__':
     f.close()
 #------ write to netcdf file ------------------------------
     #fileobj = Dataset('/home/steffen/Masterarbeit/Daten/daily/tasmax/MPI/cclm/new.nc', 'w')
-    fileobj = Dataset(out_file, 'w')
+    fileobj = Dataset(outfile, 'w')
     fileobj.createDimension('rlat', len(lats))
     fileobj.createDimension('rlon', len(lons))
     fileobj.createDimension('time', np.shape(var)[0])
     
     lat_var = fileobj.createVariable('rlat', 'f', ('rlat',))
     lon_var = fileobj.createVariable('rlon', 'f', ('rlon',))
-    var_var = fileobj.createVariable(var_in, 'f', ('time','rlat','rlon'))
+    var_var = fileobj.createVariable(varin, 'f', ('time','rlat','rlon'))
     
     lat_var[:] = lats[:]
     lon_var[:] = lons[:]
     var_var[:,:,:] = var_n[:,:,:]
-    fileobj.title = out_file
+    fileobj.title = outfile
     print("...creating file was succesfull!")
     fileobj.close()
     

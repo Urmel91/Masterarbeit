@@ -1,14 +1,25 @@
-#!/usr/bin/python
+#!/usr/bin/python3
 
-# plotting spatial distribution oder spatial avergae of a variable like tas, pr, ...
-# the variable is averaged over 30 years:
-# 1971-2000 fm[0](reference period), 2021-2050 fm[50], 2071-2100 fm[100]
-# possible to distinguish between winter, spring, summer, autumn, year 
+'''
+Berechnungen von jahresmittelwerten oder täglichen Werten von temp, pr oder
+extremereignissen. 
 
-# input: [1] time , wich data: mon or daily
-#        [2] var , e.g. tas, pr, tasmax,...
-#        [3] jz, e.g. djf, mam,...
-#        [4] opt, what to plot? spatial dis (spat),...
+Zwei Möglichkeiten:
+
+Räumliche Berechnungen für Temp, Pr oder ein Extremereignis. Zeitliche Mittel 
+kann tägliche oder über Zeiträume 1971-2000, 2021-2050, 2071-2100 gemittelte
+Daten ausgeben.
+
+Zeitreihen, also über ganz Niedersachsen gemittelte Größen der jahresmittel_
+von temp, pr oder Extremereignissen.
+
+input: [1] var , e.g. tas, pr, tasmax,...
+       [2] opt, räumlich (spat) oder zeitreihe (ts)
+       [3] exer, was soll berechnet werden? Extremereignis, temp, pr,...
+       
+output: spat: nc_datei
+        ts: csv-datei
+'''
 
 from netCDF4 import Dataset
 import numpy as np
@@ -19,254 +30,125 @@ from matplotlib import colors
 from mpl_toolkits.basemap import Basemap
 import coord_trafo as ct
 import numpy.ma as ma
-
-
-def read_data(data,data_name):
-    f = Dataset(data, 'r')
-    #gp_mean[0,:,:] = gp_mean[0,:,:] - 273.15
-    return(f.variables[data_name][:])
-
-#----------------------------------------------------------------
-#< year mean of monthly data. in every year the mean of the jz will
-#< be calculated for every gp.
-def year_mean_gp(data, jz):
-    ym = np.zeros((130,31,34), 'f')
-
-    if ( jz == "year" ):
-        s = 0; e = 12
-    if ( jz == "mam" ):
-        s = 2; e = 5
-    elif ( jz == "jja" ):
-        s = 5; e = 8
-    elif ( jz == "son" ):
-        s = 8; e = 11
-    elif (jz == "djf" ):
-        s = 0; e = 2
-        for j in range(130):
-            start = (s+12*j) 
-            end = (e+12*j)
-            foo = np.concatenate((data[start:end,:,:],[data[start+11,:,:]]))
-            ym[j,:,:] = np.mean(foo,axis=0)
-        return(ym)
-    
-    for j in range(130):
-        start = (s+12*j) 
-        end = (e+12*j) 
-        ym[j,:,:] = np.mean(data[start:end,:,:],axis=0)
-    return(ym)    
-
-def floating_mean(data, jz):
-    data = year_mean_gp(data, jz)
-    fm = np.zeros((101,31,34),'f')
-    for j in range(101):
-        fm[j,:,:] = np.mean(data[(0+j):(30+j),:,:],axis=0)
-    fm[:,:,:] = fm[:,:,:] - fm[0,:,:] 
-    fm = ct.niedersachsen(fm)
-    return(fm)                    
-
-
-#----- spatial distribution of daily data ------------------
-#< fur jeden GP wird jahrliches mittel erzeugt aus daily data
-def mean_year_gp(data):
-    mean_gp = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
-    year = np.arange(1971,2101)
-    day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
-    end = 0
-    for iyear in year:
-        if ( schaltjahr(iyear) ):
-            day_month[1] = 29
-        else:
-            day_month[1] = 28
-        start = end
-        end = sum(day_month) + end
-        index = iyear - 1971
-        mean_gp[index] = np.mean(data[start:end,:,:], axis = 0)
-    mean_gp = ct.niedersachsen(mean_gp)    
-    return(mean_gp)    
-
-#------ waermeperiode ------------------------------------------
-#< output: Anzahl Tage hintereinander mit T_max > 25 Grad
-#< als array mit fm[0] 
-def heatperiod(data):
-    fm = np.zeros((3,np.shape(data)[1],np.shape(data)[2]),'f')
-    heatdays_year = np.zeros((130,np.shape(data)[1],np.shape(data)[2]), 'f')
-    year = np.arange(1971,2101)
-    day_month = np.array([31,28,31,30,31,30,31,31,30,31,30,31])
-    end = 0
-    for iyear in year:
-        if ( schaltjahr(iyear) ):
-            day_month[1] = 29
-        else:
-            day_month[1] = 28
-        start = end
-        end = sum(day_month) + end
-        index = iyear - 1971
-        #if ()
-        heatdays_year[index] = heatperiod_counter(data[start:end,:,:])
-    for j in range(3):
-        fm[j,:,:] = np.mean(ct.niedersachsen(heatdays_year[(0+j*50):(30+j*50),:,:]),axis=0)
-    fm[1,:,:] = fm[1,:,:] - fm[0,:,:]
-    fm[2,:,:] = fm[2,:,:] - fm[0,:,:]
-    #fm = ct.niedersachsen(fm)
-    return(fm)    
-    
-def heatperiod_counter(data):
-    counter = np.zeros(np.shape(data),'i')
-    max_dauer = np.zeros((np.shape(data)[1],np.shape(data)[2]),'i')
-    for iday in range(len(data)):
-        for lon in range(len(data[iday])):
-            for lat in range(len(data[iday,lon])):
-                if(data[iday, lon, lat] > (273.15+25)):
-                    counter[iday,lon,lat] = counter[iday-1,lon,lat] + 1
-                    if (counter[iday,lon,lat] > max_dauer[lon,lat]):
-                        max_dauer[lon,lat] = counter[iday,lon,lat]
-                        
-                else:
-                    if (counter[iday-1,lon,lat] > max_dauer[lon,lat]):
-                        max_dauer[lon,lat] = counter[iday-1,lon,lat]
-                    counter[iday,lon,lat] = 0
-    return(max_dauer)                
-    
-
-#----- spatial average of lower saxony of daily data ------------
-def mean_day(var):
-    md = np.array([[np.mean(var[j][i]) for i in range(len(var[j]))] for j in range(len(var))])
-    return(md)
-
-def schaltjahr(jahr):
-    if jahr % 400 == 0:
-        return True
-    elif jahr % 100 == 0:
-        return False
-    elif jahr % 4 == 0:
-        return True
-    else:
-        return False
-    
-#------- plotting spatial distribution ---------------------------
-def plot_basemap(data, lons, lats):
-    m = Basemap(projection ='merc',resolution='l', llcrnrlat=51.31250-0.125, llcrnrlon=6.68750-0.125, 
-              urcrnrlat=54.0625 ,urcrnrlon=11.5626+0.125)
-    m.drawcoastlines()
-    #m.drawcountries()
-    m.drawmapboundary()
-
-    m.readshapefile('/home/steffen/germany_map/gadm36_DEU_0','gadm36_DEU_0', drawbounds=True)
-    m.readshapefile('/home/steffen/germany_map/gadm36_DEU_1','gadm36_DEU_1', drawbounds=True)
-    #m.drawmeridians(lons)
-    #m.drawparallels(lats)    
-    #m.drawmeridians(np.arange(6.68750-0.125,11.5626+0.125,0.125))
-    #m.drawparallels(np.arange(51.31250-0.125,54.0625,0.125))
-    x,y = m(lons,lats)
-    #m.scatter(x,y,alpha=0.5)
-    #cs = m.contourf(x,y,data, np.arange(0, 5.0, .1), cmap=plt.cm.get_cmap('hot'),alpha=0.8)
-    #cs = m.contourf(x,y,data, alpha=0.6)
-    m.pcolormesh(x, y, data, cmap=plt.cm.get_cmap('Blues', 8))
-    cbar = plt.colorbar(orientation='horizontal', shrink=0.625, aspect=20, fraction=0.2,pad=0.02)
-    #cbar = m.colorbar(cs,location='bottom',pad="5%")
-    plt.show()
-
-def plot_ts(var):
-    fig, ax = plt.subplots()
-    for i in range(len(var)):
-        ax.plot(np.arange(15,116),var[i])
-    
-    plt.xticks(np.arange(0,131,10),np.arange(1971,2101,10))
-    plt.grid()    
-    plt.show()    
-
-def plot_bandbreite(var, names):
-    #fig, ax = plt.subplots()
-    for i in range(len(var)):
-        start = abs(max(var[i])-min(var[i]))
-        plt.bar(i, height=start, width=0.4, bottom=min(var[i]),color='lightblue')
-        plt.plot([i-0.2,i+0.2],[np.median(var[i]),np.median(var[i])],'r')
-    xmin,xmax = plt.xlim()    
-    plt.plot([xmin,xmax],[0,0],color = 'grey',linestyle = '--')    
-    #ax.set_ylim(-0.5,max(np.max(var,axis=1))+1)
-    plt.ylim(-0.5,6)
-    plt.xlim((xmin,xmax))
-    plt.xticks(np.arange(5),names)
+import time
+import mod_calculations as ca
+import pandas as pd
+from scipy.stats import norm
 
 
 if __name__ == '__main__':
     
-    time = sys.argv[1]
-    var = sys.argv[2]
-    jz = sys.argv[3]
-    opt = sys.argv[4]
-
-    data_path = "/home/steffen/Masterarbeit/Daten/"+time+"/"+var+"/"
+    var = sys.argv[1]
+    opt = sys.argv[2]
+    exer = sys.argv[3]
+    jz = sys.argv[4]
     
+    data_path = "/home/steffen/Masterarbeit/Daten/daily/"+var+"/"
     data = sorted(glob.glob(data_path+'*.nc'))
     
     f = Dataset(data[0], 'r')
     rlats=f.variables['rlat'][:]
     rlons=f.variables['rlon'][:]
-    
+    f.close()
+            
     #----- calculate lons, lats in gographical coordinates ------
     lon_lat_r = np.meshgrid(rlons,rlats)
     lons, lats = ct.coord_traf(2, lon_lat_r[0], lon_lat_r[1])
-    
-    if ( time == "mon" ):
-        #----- ensemble data jahreszeiten mean every GP -----------------------
-        #< erzeugt mir dic in dem fur jede jahreszeit uber alle ensembles 30 jahresmittel
-        #< jedes GP stehen.
-        jz_names = ["year","djf", "mam", "jja", "son"]
-        gp_mean = {}
-        gp_ensemble = {}
-        for name in jz_names:  
-            gp_ensemble[name] = [floating_mean(read_data(ifile,var),name) for ifile in data]
-            gp_mean[name] = ct.niedersachsen(np.mean(gp_ensemble[name],axis=0))
+
+    if (opt == 'sp'):
+        #< räumliche jährliche Werte für jeden GP und jedes Modell
         
-        #-------ensemble data spatial floating mean ---------------------------
-        #< jede jz hat liste mit spatial mean jeden modells for every time step
-        #< average over every gp in lower saxony.
-        fm_jz = {}
-        for name in jz_names:
-            fm = []
-            for i in range(len(gp_ensemble[name])):
-                fm.append([np.mean(gp_ensemble[name][i][j]) for j in range(len(gp_ensemble[name][i]))])
+        result = ma.array(np.zeros((9,130,31,34),'f'))
+        for i, ifile in enumerate(data):
+            result[i] = ca.extrem(ca.read_data(ifile, var),opt,var,exer)
+        ca.writing_nc(result, "spat_{}_{}.nc".format(var,exer), var, rlats, rlons,ensemble=True)
+    '''
+
+    #< räumliche tägliche Werte für jeden GP und jedes Modell
+    #< eingabe: exer = day, weitere verarbeitung der jz bei analyse
+    #< wichtig für robustheitsanalyse
+    if (opt == 'spatday'):
+        
+        result = ma.array(np.zeros((9,47482,31,34),'f'))
+        for i, ifile in enumerate(data):
+            result[i] = ca.extrem(ca.read_data(ifile, var),opt,var,exer)
+        ca.writing_nc(result, "spat_{}_{}.nc".format(var,exer), var, rlats, rlons,em=False)
+
+    #< räumliche jährlich extremwerte für jeden gp
+    if (opt == 'spatex'):
+        
+        result = ma.array(np.zeros((9,130,31,34),'f'))
+        
+        for i, ifile in enumerate(data):
             
-            fm_jz[name] = np.array(fm)
-    
-    elif (time == "daily" ):
-        hd = [heatperiod(read_data(ifile,var)) for ifile in data]
-        w = np.mean(hd[:], axis=0)
-        print(np.shape(w[0]))
+            print("calculating for cm{}".format(i))
+            result[i] = ca.extrem(ca.read_data(ifile, var),opt,var,exer,jz)
+            
+        ca.writing_nc(result, "spatex_{}_{}_{}.nc".format(var,exer,jz), var, rlats, rlons,em=False)
+
+    #< räumliche Klimaänderugnssignale im ensemblemedian
+    #< ensemblemedian oder floatingmean jedes modells berechnen        
+    if ( opt == "spat" ):
+        
+        em_or_fm = sys.argv[5] 
+        
+        result = ma.array(np.zeros((9,3,31,34),'f'))
+        for i, ifile in enumerate(data):
+            print("calculating for cm{}".format(i))
+            result[i] = ca.extrem(ca.read_data(ifile, var),opt,var,exer,jz)
+        em = ma.array(np.zeros((3,31,34),'f'))
+        for i in range(3):
+            em[i] = np.median(result[:,i,:,:], axis=0)
                 
-                        
-    #----- plotting spatial distribution ---------
-    if ( opt == "spat" ):    
-        #plot_basemap(gp_mean["year"][50], lons, lats)
-        plot_basemap(w[0], lons, lats)
-        #plot_basemap(w[1], lons, lats)
-    #----- Gebietsmittel 30 years berechnen ------------------------------- 
-    elif ( opt == "ts" ):
-        plot_ts(fm_jz[jz])
+        if em_or_fm == 'em':
+            ca.writing_nc(em, "spat_em_{}_{}_{}.nc".format(var, exer,jz), var, rlats, rlons,em=True)
+        elif em_or_fm == 'fm':     
+            ca.writing_nc(result, "spat_fm_{}_{}_{}.nc".format(var, exer, jz), var, rlats, rlons,em=False)
+            
+    elif ( opt == 'ts' ):    
+        #< zeitreihen berechnen und als csv abspeichern
         
-    #----- Bandbreiten berechnen ---------------------------------
-    elif ( opt == "bb" ):
-        jz_names = ["year", "djf", "mam", "jja", "son"]
-        sig = []
-        for i in range(1,3):
-            sig.append([fm_jz[j][:,i*50] for j in jz_names])
+        #<index für zeitreihen anlegen
+        if exer == 'day':
+            index = pd.date_range('1971-01-01','2100-12-31',freq='D')
+        elif exer == 'month':
+            index = pd.date_range('1971-01','2100-12',freq='MS')
+        else:
+            index = pd.date_range('1971', '2100', freq='AS')
         
-        for i in range(1,3):
-            plt.subplot(1,2,i)    
-            plot_bandbreite(sig[i-1], jz_names)
-        plt.savefig(var +"_"+ opt+".pdf")
-        plt.show()
-    
-    '''
-#---- plot in ein fenster   
-    fig = plt.figure(1)
+        result = pd.DataFrame()
+        
+        #< calculating time series for every model
+        for i, ifile in enumerate(data):
+            print("calculating for cm{}".format(i))
+            foo = ca.extrem((ca.read_data(ifile,var)), opt, var, exer, jz)
+            result["cm{}".format(i)] = pd.Series(foo,index)
+        
+        # eine Zeitreihe eines models    
+        #foo1 = ca.extrem((ca.read_data(data[0],var)), opt, var, exer)
+        #result["cm{}".format(0)] = pd.Series(foo1,index)
 
-    for i in range(1,2):
-        plt.subplot(2,1,i)    
-        plot_basemap(gp_mean[jz][i-1], lons, lats)
-    #savename = var + "_gp_mean_" + jz 
-    #plt.savefig(savename+".pdf")
-
-    plt.show()
-    '''
+        # Ergebnisse abspeichern als csv. Namen um zu speichern
+        names_ee = {'hp':'hitzeperiode.csv',\
+                    'vp':'vegetationsphase.csv',\
+                    'vp2':'vegetationsphase2.csv',\
+                    'wp':'warmeperiode.csv',\
+                    'ft':'frosttage.csv',\
+                    'st':'sommertage_{}.csv'.format(jz),\
+                    'ht':'hitzetage_{}.csv'.format(jz),\
+                    'tt':'trockentage_{}.csv'.format(jz),\
+                    'snt':'snt_{}.csv'.format(jz),\
+                    'tp':'trockenperiode.csv',\
+                    'sft': 'speatfrost.csv',\
+                    'jm':'jahresmittel_{}.csv'.format(var),\
+                    'djf':'winter_{}.csv'.format(var),\
+                    'jja':'sommer_{}.csv'.format(var),\
+                    'mam':'mam_{}_jm.csv'.format(var),\
+                    'son':'son_{}_jm.csv'.format(var),\
+                    'month':'month_{}_jm.csv'.format(var),\
+                    'day':'daily_{}.csv'.format(var)}
+        
+        result.to_csv(names_ee[exer])
+        print('result to csv: finished')
+        
+                    

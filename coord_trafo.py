@@ -32,6 +32,7 @@ def coord_traf(k, lon, lat):
                 lon_new = np.arctan2(y_new, x_new)
                 lat_out[i,j] = lat_new*180.0/np.pi
                 lon_out[i,j] = lon_new*180.0/np.pi
+                
             else: 
                 print("falsches k!")
     return(lon_out, lat_out)    
@@ -110,5 +111,42 @@ def niedersachsen(var):
         data[i,25,15:20] = False
         #data[i,26,5:14] = False
         #data[i,26,15:19] = False
-    nied = ma.masked_array(data=var, mask=data, fill_value=0.0000)
-    return(nied)
+    n = ma.masked_array(data=var, mask=data, fill_value=0.0000)
+    return(n)
+
+def niedersachsen_1(var):
+    data = np.full((31,34),True)
+    data[2,18:20] = False
+    data[3,18:23] = False
+    data[4,18:25] = False
+    data[5,17:25] = False
+    data[6,17:25] = False
+    data[7,17:25] = False
+    data[8,16:28] = False
+    data[9,16:28] = False
+    data[10,9:13] = False
+    data[10,16:28] = False
+    data[11,16:28] = False
+    data[11,10:13] = False
+    data[12,10:13] = False
+    data[12,14:28] = False
+    data[12, 5:7] = False
+    data[13,5:28] = False
+    data[14,4:27] = False
+    data[15,3:30] = False
+    data[16,4:31] = False
+    data[17,4:31] = False
+    data[18,6:29] = False
+    data[19,7:28] = False
+    data[20,7:27] = False
+    data[21,7:24] = False
+    data[22,6:22] = False
+    data[23,6:21] = False
+    data[24,6:13] = False
+    data[24,15:20] = False
+    data[25,5:13] = False
+    data[25,15:20] = False
+    #data[i,26,5:14] = False
+    #data[i,26,15:19] = False
+    n = ma.masked_array(data=var, mask=data, fill_value=0.0000)
+    return(n)

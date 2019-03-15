@@ -39,7 +39,7 @@ if __name__ == '__main__':
     rlons=f.variables['rlon'][:]
     var = f.variables[var_in][:] #(time,lats,lons)
     data = data[1:]
-    
+    f.close()
     for name in data:
         
         f = Dataset(name, 'r')
