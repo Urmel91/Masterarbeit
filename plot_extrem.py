@@ -392,12 +392,45 @@ if __name__ == '__main__':
         hv0w = day.jahreszeit(1971, 'djf', em=True)
         hv0h = day.jahreszeit(1971, 'son', em=True)
         hv0f = day.jahreszeit(1971, 'mam', em=True)
+        
         '''
-        x = hv0e[:, np.newaxis]
-        kde = KernelDensity(kernel='gaussian', bandwidth=0.2).fit(x)
-        d = kde.score_samples(x)
-        print(d.shape)
+        rand = np.random.RandomState(1)
+        x = rand.randn(9500)
+        x[int(0.3 * 9500):] += 5
         '''
+                
+        # ----- plot hv --------- 
+        fig, ax = plt.subplots(1, 2, figsize=(10,5))
+        x_d = np.linspace(0.5, 50, 100)
+        
+        for i in hv0.columns:
+            x = hv0[i][:, None]
+            #kde = KernelDensity(kernel='exponential', bandwidth=1).fit(x)
+            # bei score_samples muss ich punkte eingeben, an denen ich wert haben will
+            # gibt mir log der wahrscheinlichkeitsdichte wieder
+            #d = kde.score_samples(x_d[:,None])
+            d = sum((abs(xi - x_d) < 0.5) for xi in x)
+            d = d/sum(d)
+            ax[0].plot(x_d, d, alpha=0.8, label = i)
+            ax[1].plot(x_d, np.log10(d), alpha=0.8, label = i)
+            
+            #ax[1].legend(loc='upper right', ncol=3)
+            ax[0].plot(x, np.full_like(x, -0.01), '|', markeredgewidth=1)
+
+        e = hv0e[:, None]
+        d_e = sum((abs(xi - x_d) < 0.5) for xi in e)
+        d_e = d_e/sum(d_e)
+        ax[1].plot(x_d, np.log10(d_e), label = 'ensemble', linewidth = 2, color = 'k')
+            
+        lgd = ax[1].legend(bbox_to_anchor=(1, -0.35), loc='lower right', ncol=5, frameon=True)
+        ax[0].set_xlabel('Niederschlag [mm]')
+        ax[1].set_xlabel('Niederschlag [mm]')
+        ax[0].set_ylabel('Relative Häufigkeitsdichte')
+        ax[1].set_ylabel('Relative Häufigkeitsdichte')
+        plt.subplots_adjust(wspace=0.5)
+        #plt.show()
+        plt.savefig("pr_hv_all_ref.pdf", bbox_extra_artists=(lgd,), bbox_inches='tight')
+        sys.exit()
         
         #vllt noch brauchbar für ensembleplot
         '''
@@ -429,6 +462,8 @@ if __name__ == '__main__':
         density_e1 = np.array(density_e1)
         '''
         # Ich teile die Verteilungen so ein, dass jeder x wert 1 mm niederschlag darstellt.
+        
+        
         loghv0 = loghv(hv0e)
         loghv1 = loghv(hv1e)
         loghv2 = loghv(hv2e)
@@ -504,7 +539,6 @@ if __name__ == '__main__':
         #plt.title('Perzentiländerung bis 2021-2050 {}'.format(jahreszeit))
         #plt.savefig("{}_perc_{}_{}.pdf".format(var, jz, '2'),bbox_extra_artists=(lgd,), bbox_inches='tight')
         plt.show()
-        sys.exit()
         
         
     elif opt == 'test':
